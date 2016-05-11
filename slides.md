@@ -104,6 +104,65 @@ versions.
 
 </div>
 
+
+Functional Programming
+-----------------------
+
+* Functional programming is programming with values.
+* Primitive arrangements of bits are values.
+* Instances of data structures are values.
+* Functions are values.
+* Programs are values.
+
+<div class="notes">
+
+What is functional programming? A lot of sources describe it in terms of
+programming with pure functions that deterministically map inputs to outputs,
+using only immutable data structures. A lot of attention is given to
+programming with higher-order functions, which are just functions that take
+other functions as arguments. However, I think this focus on functions is a
+little misplaced. When I speak about functional programming, somewhat
+ironically, what I'm talking about is programming with *values*. 
+
+So what are values? First we can think of some really primitive building
+blocks, from which we can build everything else - these are boolean values, or
+as we frequently think of them when gathered together with some structure,
+bits. For convenience, most languages give us some predefined ways in which we
+can refer to larger assemblies of these things; 64-bit integers, IEEE floats,
+and so forth. 
+
+Now, think for a moment about the value "True." While it's pretty easy to
+imagine a *reference* to a boolean value like being mutable, it's pretty clear
+that the value "True" itself isn't; by extension, any conceptual assembly of
+true and false values is itself an immutable value. In functional programming,
+we also inhibit *references* to values from changing.
+
+So, where does this leave us? If we can't change values, and we can't change
+references to values, what exactly can we do? It comes down to just a couple of
+operations. First, we can, given a value, think about observe some subset of
+that value, so that instead of looking at the whole we're just considering a
+part.
+
+The other thing that we can do, and the operation that is going to be the focus
+of all of the rest of this talk, is that we can combine two values so that we
+observe them as a new value.
+
+So, what does this all have to do with how names in functional programming can
+be unfamiliar and scary? Well, you know that apocryphal (and probably false)
+story about how the Inuit have maybe fifty, or maybe a couple of hundred,
+distinct words for snow? In functional programming, we have lots and lots of 
+ways of combining values, and when you have so many ways of doing *essentially*
+the same thing, you need a lot of names to describe the subtle differences
+in these combining operations.
+
+</div>
+
+Records
+-------
+
+Disjunctions (Sum Types)
+------------------------
+
 Monstrous Names!
 ----------------
 
@@ -125,13 +184,6 @@ Coyoneda
 Free Applicative
 Free Monad
 Tagless Final Interpreters
-
-Programming with values
------------------------
-
-* We write programs by _combining_ values
-* Functions are values
-* Programs are values
 
 a -> a -> a
 -----------
