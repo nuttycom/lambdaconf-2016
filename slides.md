@@ -2,16 +2,9 @@ Monstrous Names Aren't Scary
 ============================
 
 Kris Nuttycombe
+May 28, 2016
 
-Preamble
---------
-
-* About me
-* Language choice
-* Resources
-
-
-<div class="notes">
+<aside class="notes">
 
 One of the first things that I think that everybody notices, basically as soon
 as they get started with functional programming, is that as soon as you start
@@ -38,12 +31,10 @@ not scary, it's at least a bit daunting.
 The purpose of this talk is to give you a bit of a framework for thinking about
 functional programming that will hopefully make it all a bit less daunting.
 
-</div>
-
-
+</aside>
 
 Functional Programming
------------------------
+======================
 
 * Functional programming is programming with values.
 * Primitive arrangements of bits are values.
@@ -51,7 +42,7 @@ Functional Programming
 * Functions are values.
 * Programs are values.
 
-<div class="notes">
+<aside class="notes">
 
 What is functional programming? A lot of sources describe it in terms of
 programming with pure functions that deterministically map inputs to outputs,
@@ -92,10 +83,10 @@ ways of combining values, and when you have so many ways of doing *essentially*
 the same thing, you need a lot of names to describe the subtle differences
 in these combining operations.
 
-</div>
+</aside>
 
 Records
--------
+=======
 
 ~~~{haxe}
 
@@ -106,7 +97,7 @@ typedef Pair<A, B> = {
 
 ~~~
 
-<div class="notes">
+<aside class="notes">
 
 This is an example of the most trivial possible way that one can put two values
 together to create a new value. This slide is really just in here to give me an
@@ -127,10 +118,59 @@ type ascription using this colon syntax that we can see here, and type
 parameterization (the real name for what heathens call "generics") that looks
 like it does in Java, C# or Swift.
 
-Secondly, it has syntax for sum types and pattern matching. If you haven't
-heard of sum types before, don't worry, we'll get to them in a minute, but the
-fact that we have syntax for them means that examples fit on slides a lot
-better than they would if I was encoding them in something like Java. 
+</aside>
+
+Enum
+====
+
+~~~{haxe}
+
+enum Maybe<A> {
+  Just(a: A);
+  Nothing;
+}
+
+function orZero(imay: Maybe<Int>): Int {
+  return switch imay {
+    case Just(i): i;
+    case Nothing: 0;
+  };
+}
+
+orZero(Just(1)) 
+// 1
+
+orZero(Nothing)
+// 0
+
+~~~
+
+<aside class="notes">
+
+Also, Haxe has syntax for sum types (actually generalized algebraic data types)
+and pattern matching. 
+
+Whoah, wait a minute, generalized algebraic data types? That's definitely a
+scary term! Hopefully we'll be able to make that a little less scary as we go
+along here, but for the moment I do want to speak really briefly about sum
+types. Haxe calls them 'enums' which is helpfully suggestive for folks coming
+from languages like C and Java. 
+
+Unlike what's typically termed an enum, values of a sum type can carry around
+additional data, which you can retrieve when you pattern match on a value of
+that type. Each term of the 'enum' block is called a 'constructor' for that data
+type - just to be clear, 'Just' isn't a type, it's a constructor for a value
+of type 'Maybe of A'. 
+
+Types like this, where you can have multiple different constructors for values
+of the same type, are really, really important, so important that I kind of
+think that languages that lack first-class support for them are really
+crippled.  The reason that they're so important is that, when building an
+application, it's really useful to think about the state space of the
+application, and more specifically how to minimize the number of states
+there are within that space. Does everybody know what I'm talking about here?
+
+(If not, proceed down)
 
 Finally, it *does not* have higher kinded types, which means that a whole lot
 of abstractions that folks from the Haskell and Scala worlds find invaluable
@@ -147,25 +187,64 @@ examples to the abstract. Here, all that you're going to see are the concrete
 bits, because the language doesn't actually let me represent the abstracted
 versions.
 
+</aside>
+
+How Many States?
+----------------
+
+~~~{haxe}
+var b: Bool = /* censored */;
+~~~
+
+<div class="fragment">
+~~~{haxe}
+var i: Int = /* censored */;
+~~~
 </div>
+
+<div class="fragment">
+~~~{haxe}
+var x: { b: Bool, i: Int } = /* censored */;
+~~~
+</div>
+
+<div class="fragment">
+~~~{haxe}
+enum Either<A, B> {
+  Left(a: A);
+  Right(b: B);
+}
+
+var x: Either<Bool, Int> = /* censored */;
+~~~
+</div>
+
+How Many States?
+----------------
 
 ~~~{haxe}
 
-function addOne(i: Int): Int {
-  return i + 1;
+var b: Bool = /* censored */;
+// 2 states
+
+var i: Int = /* censored */;
+// 2^32 states
+
+var x: { b: Bool, i: Int } = /* censored */;
+// 2 * 2^32 states
+
+enum Either<A, B> {
+  Left(a: A);
+  Right(b: B);
 }
 
-var addOneF: Int -> Int = addOne;
-
-enum Maybe<A> {
-  Just(a: A);
-  Nothing;
-}
+var x: Either<Bool, Int> = /* censored */;
+// 2 + 2^32 states
 
 ~~~
 
-Monstrous Names!
-----------------
+Monsters!
+=========
 
 ### Abstract Algebra
 Semigroup
@@ -186,48 +265,80 @@ Free Applicative
 Free Monad
 Tagless Final Interpreters
 
-Semigroups
------------
+Semigroup
+=========
 
-Combine two values of the same type.
-
-~~~{haxe}
-
-typedef Semigroup<A> = A -> A -> A;
-
-~~~
+* An operation that combines two values of the same type...
 
 ~~~{haxe}
 
-function foldMay<A>(xs: Array<A>, s: Semigroup<A>): Maybe<A> {
-  return if (xs.length == 0) {
-    Nothing;
-  } else {
-    var acc = xs[0];
-    for (i in 1...xs.length) {
-      acc = s.append(acc, xs[i]);
-    }
-    acc;
-  }
+typedef Semigroup<A> = {
+  append: A -> A -> A
 }
 
 ~~~
 
-Semigroup
----------
-
-* An operation that combines two values of the same type.
-* f :: a -> a -> a
+<div class="fragment">
 
 * ... which is associative
-  * f (f a0 a1) a2 = f a0 (f a1 a2)
 
-* Why is associativity important? 
-  * It allows us to reorder operations and achieve the same result,
-    so long as the order of the operands is preserved.
+~~~{haxe}
+
+s.append(s.append(a0, a1), a2) == s.append(a0, s.append(a1, a2))
+
+~~~
+
+</div>
+
+<aside class="notes">
+
+Why is associativity important? 
+
+* It allows us to reorder operations and achieve the same result,
+  so long as the order of the operands is preserved.
+
+* A coworker stated this as "You want associativity when you want to muck 
+  about with evaluation order."
+
+</aside>
+
+------
+
+~~~{haxe}
+
+function reduce<A>(xs: Array<A>, s: Semigroup<A>): Maybe<A> { ... }
+
+function 
+
+~~~
+
+<aside class="notes">
+
+So, with our semigroup in hand, we can then go on to write a bunch of 
+
+So, why don't we just call this an "AssocAppender" or something? Well, we could.
+However, here's a chart that I grabbed off of Wikipedia:
+
+</aside>
+
+------
+
+<img src="./img/group-like-structures.png" width="400"/>
+
+<aside class="notes">
+
+We don't call this an AssocAppender because to do so would rob us of centuries
+worth of literature and learning about how we can use associative binary 
+operations that put together two members of a set and return another member
+of that same set. Calling it a Semigroup helps us identify that this operation
+is part of a larger framework of binary operations on sets, some of which may be 
+useful to us in similar situations. When we look here and see that 'Monoid' is just a semigroup with 
+an identity element. 
+
+</aside>
 
 Composition
------------
+===========
 
 * (.) :: (b -> c) -> (a -> b) -> (a -> c)
 
