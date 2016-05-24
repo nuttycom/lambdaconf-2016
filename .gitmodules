@@ -1,3 +1,9 @@
 [submodule "reveal.js"]
 	path = reveal.js
 	url = git@github.com:hakimel/reveal.js.git
+[submodule "thx.schema"]
+	path = sample_code/thx.schema
+	url = git@github.com:nuttycom/thx.schema.git
+[submodule "thx.json"]
+	path = sample_code/thx.json
+	url = git@github.com:nuttycom/thx.json.git

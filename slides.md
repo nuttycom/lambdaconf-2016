@@ -2,6 +2,9 @@ Monstrous Names Aren't Scary
 ============================
 
 Kris Nuttycombe
+
+(@nuttycom)
+
 May 28, 2016
 
 <aside class="notes">
@@ -11,11 +14,9 @@ as they get started with functional programming, is that as soon as you start
 looking at resources, reading blog posts, maybe trying to understand the
 workings of some library related to a problem you're interested in, that 
 the words you're reading have absolutely *nothing to do* with anything that
-you've previously encountered in programming. This, of course, can be a little 
-scary. The purpose of this talk is to attempt to dispel a bit of that fear.
-
-But to do so, I think we're going to first have to talk a bit about *why*
-this experience is scary. 
+you've previously encountered in programming. Even familiar terms like "sum" 
+and "product" are endowed with new and mysterious significance. It's like being 
+dropped into the middle of a D&D campaign without access to the monster manual.
 
 The truth is, your fear is justified. In one way or another, every one of those
 unfamiliar words represents a concept that you need to learn in order to be
@@ -33,14 +34,9 @@ functional programming that will hopefully make it all a bit less daunting.
 
 </aside>
 
-Functional Programming
-======================
+------
 
-* Functional programming is programming with values.
-* Primitive arrangements of bits are values.
-* Instances of data structures are values.
-* Functions are values.
-* Programs are values.
+<img src="./img/fp_with_values.jpg" width="800"/>
 
 <aside class="notes">
 
@@ -58,6 +54,12 @@ as we frequently think of them when gathered together with some structure,
 bits. For convenience, most languages give us some predefined ways in which we
 can refer to larger assemblies of these things; 64-bit integers, IEEE floats,
 and so forth. 
+
+* Primitive arrangements of bits are values
+* Instances of data structures are values
+* Functions are values
+* Programs are values
+* Types are values (!)
 
 Now, think for a moment about the value "True." While it's pretty easy to
 imagine a *reference* to a boolean value like being mutable, it's pretty clear
@@ -83,32 +85,94 @@ ways of combining values, and when you have so many ways of doing *essentially*
 the same thing, you need a lot of names to describe the subtle differences
 in these combining operations.
 
+Before we can talk about the interesting ways in which we can combine values,
+though, I want to quickly say a word about types.
+
 </aside>
 
-Records
-=======
+Types
+=====
+
+The purpose of a type system is to verify that we have minimized the potential
+state space of an application such that only valid states are representable.
+
+<aside class="notes">
+
+When I talk about functional programming, I essentially always talk about
+*typed* functional programming, because what I'm personally most interested
+in is our ability to reason about our programs, and, more importantly, the
+ways that computers can help us with our reasoning.
+
+As programmers, we're engaged in building some of the most complex artifacts
+that human beings have ever created. The number of states that even the
+simplest business application can represent dwarfs that of most physical
+systems. This complexity is hard for our brains to deal with, but it's the
+kind of thing that computers are great at. 
+
+A sufficiently strong type system allows us to *simplify* our applications.
+Specifically, they allow us to minimize the state space, ideally to the point
+where *only valid states are representable.* Now, there are obviously
+situations - invalid user input, network irregularities, and so forth - where
+the program will not be able to compute the *desired* result, but by idenfying
+these errors *using the type system* we transform these problems from things
+that can cause an unpleasant user experience to ones where we can, and indeed
+are compelled to, respond gracefully. The stories you hear about programs
+working properly once they typecheck are not only true, but in my experience
+they understate the value. My experience is that, with an adequately described
+state space, not only do programs work on the first try, they also *virtually
+never break.*
+
+I regard the compilers I work with as a brain prosthesis - they free me from
+trivial details of tracking the types of values through a program and allow me
+to focus on what those values represent and how they are transformed. In
+programs written in dynamic languages, I can't *afford* to make use of a lot of
+the useful abstractions that are available in languages with strong type
+systems, simply because too much of my attention is consumed by the mental
+effort of tracking how to call the APIs I depend upon.
+
+By contrast, in a language with a strong type system, the compiler takes care
+of me, making sure that I'm not wasting my time with subtly incorrect API calls
+and null pointers. This frees me up to understand how the problem I'm trying
+to solve relates to other similar problems. Since it's likely that someone else
+has solved a similar problem before, I can use my understanding of the *type*
+that I need to search for a solution. Now, the only languages that I'm aware of
+that really make use of this capablity to a substantial degree are functional
+languages: Haskell has Hoogle, there's an equivalent service for PureScript, and
+there are at least a couple of projects that attempt to do the same for OCaml and
+Scala, though at least the Scala one doesn't seem to work very well.
+
+So, now, let's talk briefly about how we can add types together to create new
+types.
+
+</aside>
+
+Products
+========
 
 ~~~{haxe}
 
 typedef Pair<A, B> = {
-  fst: A,
-  snd: B
+  a: A,
+  b: B
 };
 
 ~~~
 
 <aside class="notes">
 
-This is an example of the most trivial possible way that one can put two values
-together to create a new value. This slide is really just in here to give me an
-opportunity for a bit of commentary about the programming lanugage I'm using
-for examples in this talk. It's called Haxe, and while I use it in my day job
-at the moment, I don't really recommend it much. If you want to really learn
-typed functional programming, you should pick up a copy of the new Haskell book
-by Chris Allen and Julie Moronuski, or failing that you can take the road that
-I did and muddle your way through using something like Scala where you can
-learn functional style but still fall back on your old bad habits when you're
-under deadline and have to crank out some code. Haxe isn't really a functional
+Now that that's out of the way, let's talk some more about combining values.
+Here, we're putting a two types (which, as I said earlier, are values, but here
+values in our type-level language) together to create a new type. 
+
+This slide is really just in here to give me an opportunity for a bit of
+commentary about the programming lanugage I'm using for examples in this talk.
+It's called Haxe, and while I use it in my day job at the moment, I don't
+really recommend it much. If you want to really learn typed functional
+programming, you should pick up a copy of the new Haskell book by Chris Allen
+and Julie Moronuski, or failing that you can take the road that I did and
+muddle your way through using something like Scala where you can learn
+functional style but still fall back on your old bad habits when you're under
+deadline and have to crank out some code. Haxe isn't really a functional
 programming language in any meaningful sense. However, it has a few qualities
 that I think make it useful for an introductory talk.
 
@@ -120,35 +184,24 @@ like it does in Java, C# or Swift.
 
 </aside>
 
-Enum
+---------
+
+Sums
 ====
 
 ~~~{haxe}
 
-enum Maybe<A> {
-  Just(a: A);
-  Nothing;
+enum Either<A, B> {
+  Left(a: A);
+  Right(b: B);
 }
-
-function orZero(imay: Maybe<Int>): Int {
-  return switch imay {
-    case Just(i): i;
-    case Nothing: 0;
-  };
-}
-
-orZero(Just(1)) 
-// 1
-
-orZero(Nothing)
-// 0
 
 ~~~
 
 <aside class="notes">
 
-Also, Haxe has syntax for sum types (actually generalized algebraic data types)
-and pattern matching. 
+Secondly, Haxe has syntax for sum types (actually generalized algebraic data
+types) and pattern matching. 
 
 Whoah, wait a minute, generalized algebraic data types? That's definitely a
 scary term! Hopefully we'll be able to make that a little less scary as we go
@@ -188,6 +241,7 @@ bits, because the language doesn't actually let me represent the abstracted
 versions.
 
 </aside>
+
 
 How Many States?
 ----------------
@@ -243,32 +297,240 @@ var x: Either<Bool, Int> = /* censored */;
 
 ~~~
 
-Monsters!
+Sum Type Encodings
+------------------
+
+~~~{haxe}
+
+typedef Either<A, B> = {
+  function apply<C>(ifLeft: A -> C, ifRight: B -> C): C
+}
+
+function left<A, B>(a: A): Either<A, B> = {
+  function apply<C>(ifLeft: A -> C, ifRight: B -> C): C {
+    return ifLeft(a);
+  }
+}
+
+function right<A, B>(a: A): Either<A, B> = {
+  function apply<C>(ifLeft: A -> C, ifRight: B -> C): C {
+    return ifRight(a);
+  }
+}
+
+~~~
+
+
+<div class="notes">
+
+One more thing before we move on, if you're not fortunate enough to work in a 
+language that has syntax for sum types, they're still not unavailable to you
+so long as you have either objects or closures. 
+
+Do all of you know how to do this encoding?
+
+In Object-Oriented languages, this sort of encoding is commonly known as
+the Visitor pattern. In the so-called "Gang of Four" Design Patterns book,
+however, they talk about a crippled version of this approach, which has their
+"visit" and "accept" functions returning void, which means building up
+your result via mutation of some shared mutable state and is just about
+the most awful and non-composable bastardization of a beautiful idea that
+one could come up with. 
+
+</div>
+
+JSON
+----
+
+~~~{haxe}
+
+enum JValue {
+  JObject(xs: Array<JAssoc>);
+  JArray(xs: Array<JValue>);
+  JString(s: String);
+  JNum(f: Float);
+  JBool(b: Bool);
+  JNull;
+}
+
+typedef JAssoc = {
+  fieldName: String,
+  value: JValue
+}
+
+~~~
+
+<aside class="notes">
+
+Here's another example of the sort of thing that sum types permit you
+to do - rather than using some sort of awkward map- and object-based 
+representation of a JSON value, we can encode JSON as a recursive
+sum type, which we can then safely traverse, ensuring that the structure
+that we are expecting is present at each step. 
+
+Sum types are really well suited to abstract syntax trees like this. We'll
+see them again and again throughout the reat of the talk, and we'll expand 
+our ideas about what kinds of things can exist in an abstract syntax tree.
+
+</aside>
+
+Functions
 =========
 
-### Abstract Algebra
-Semigroup
-Monoid
+~~~{haxe}
 
-### Category Theory
-(Endo)Functor
-Applicative
-Monad
+var f : A -> B = ...
 
-### Lens
-Lens
-Prism
+~~~
 
-### Free
-Coyoneda
-Free Applicative
-Free Monad
-Tagless Final Interpreters
+<aside class="notes">
+
+There's one more way to compose a pair of types apart from products and
+sums, and that's this: the type of a function from one type to another 
+is itself a type. And just as we've been able to count the number of states
+introduced into our program with products and sums, we can do the same thing
+here.
+
+</aside>
+
+<div class="fragment">
+~~~{haxe}
+
+enum OneOfThree = { First; Second; Third; };
+
+var f : OneOfThree -> Bool = ...
+
+~~~
+
+<aside class="notes">
+
+So, we have three possible inputs, each of which may independently produce one
+of two outputs. We want to figure out the size of state space that the type of
+the function can represent in our program, so we have to multiply the number of
+possible outputs by itself for each case of the input, which is to say that the
+number of possible inhabitants of a function type is the number of inhabitants
+of the output type to the *power* of the number of inhabitants of the input
+type.
+
+Now that we've covered the three ways that we can compose a pair of types to
+yield a new type, let's switch over to talking about values for a bit.
+
+</aside>
+
+</div>
+
+Function Composition
+====================
+
+~~~{haxe}
+
+function compose<A, B, C>(f: B -> C, g: A -> B): A -> C {
+  return function(a: A) {
+    return f(g(a))
+  };
+}
+
+~~~
+
+<aside class="notes">
+
+Here are the first two values that we'll think about composing - both of which
+are functions.
+
+Since this is an introductory talk about functional programming, I thought it
+would be remiss of me to omit a slide on function composition, first because
+it's so fundamental, but secondly because we will see echoes of this simple
+form of composition later when we talk about Kleisli composition and lenses. 
+
+Now, while function composition might seem a bit trivial in a talk that's
+supposedly going to be about concepts with big scary names, there's something
+important that I want to observe.
+
+A lot of resources on functional programming talk about working with pure
+functions (that is, functions that always produce the same output given a
+particular input) and how this precludes us from performing side effects in
+function evaluation. What I'd like to point out, however, is that this
+"functional purity" itself is a consequence of the fact that we're programming
+with values. All of our inputs are values, which implies that ambient changing
+things like the state of the world cannot be inputs, at least not unless
+they're explicitly snapshotted as unchanging values. Given this, there is
+simply no *opportunity* to vary the behavior of a function in such a way as to
+produce two different output values given the same input - there's nothing 
+to dispatch upon that might change from one evaluation of a function to 
+the next. 
+
+So functional purity is a natural outgrowth of the fact that we're programming
+with values. In the context of function composition, though, the really
+important thing is that this purity which we've derived means that we're able
+to reason about components of our systems independently, and still have that
+reasoning hold when those components are composed. In mathematics, when you
+have a proof of a theorem, you're then able to use that theorem in the
+derivation of more complex results without having to check whether the original
+proof of the theorem still holds. 
+
+So, now let's get on to something that actually has a bit of a monstrous name.
+
+</aside>
+
+Associativity
+=============
+
+~~~{haxe}
+
+f.compose(g.compose(h)) == (f.compose(g)).compose(h)
+
+f.compose(g)(x) = f(g(x))
+
+f.compose(g.compose(h)(x)) 
+  = f(g.compose(h)(x)) 
+  = f(g(h(x))) 
+  = (f.compose(g))(h(x))) 
+  = (f.compose(g)).compose(h)(x)
+
+~~~
+
+<aside class="notes">
+
+Okay, so associativity isn't really that monstrous. After all, most of us
+encountered it in grade school when they taught us addition. However, for many
+of us that may also be the last time we actually *thought* about associativity,
+and yet, in terms of composing a program by combining values, it's a vitally
+important property.
+
+If we're attempting to build up a system by the composition of values,
+we can't have the behavior changing depending upon what order we've put
+together the parts of our system in. Associativity of important binary
+operations like function composition allow us to decompose our system 
+freely - we can choose to factor out either the 'g.compose(h)' or
+the 'f.compose(g)' in the above example without changing the meaning
+of our program. We're free to let the *human* concerns of what pieces
+of functionality "make sense" together guide our design.
+
+</aside>
+
+<div class="fragment">
+
+> Programs must be written for people to read, and only incidentally for machines to execute.
+> - Abelson, Structure and Interpretation of Computer Programs.
+
+</div>
+
+<aside class="notes">
+
+This is a quote from Harold Abelson in one of the bibles of our profession.
+Associativity gives us the freedom we need to be able to rearrange programs
+with confidence, relying upon the types of our functions to guide us. We'll
+see the importance of associativity over and over again as we explore more
+monstrous names in functional programming.
+
+
+</aside>
 
 Semigroup
 =========
 
-* An operation that combines two values of the same type...
+* An associative binary operation that combines two values of a type
+  to yield a new value of that type.
 
 ~~~{haxe}
 
@@ -276,23 +538,16 @@ typedef Semigroup<A> = {
   append: A -> A -> A
 }
 
-~~~
-
-<div class="fragment">
-
-* ... which is associative
-
-~~~{haxe}
-
 s.append(s.append(a0, a1), a2) == s.append(a0, s.append(a1, a2))
 
 ~~~
 
-</div>
-
 <aside class="notes">
 
-Why is associativity important? 
+If we're going to be combining values, this seems about as primitive
+a mechanism for combining values as one could come up with. 
+
+So why is associativity important? 
 
 * It allows us to reorder operations and achieve the same result,
   so long as the order of the operands is preserved.
@@ -300,21 +555,30 @@ Why is associativity important?
 * A coworker stated this as "You want associativity when you want to muck 
   about with evaluation order."
 
+If functional programming is about combining values, and if we want to be able
+to decompose our programs into smaller constituents, then we may want to break
+up *where* we're doing that combining, or not do it all at once, and yet still
+have the same meaning to our program when we put those constituents back
+together.
+
 </aside>
 
 ------
 
 ~~~{haxe}
 
-function reduce<A>(xs: Array<A>, s: Semigroup<A>): Maybe<A> { ... }
-
-function 
+function fold1Nel<A>(xs: NonEmptyList<A>, s: Semigroup<A>): A { 
+  return switch xs {
+    case Single(a): a;
+    case Cons(a, ax): s.append(a, fold1Nel(ax));
+  };
+}
 
 ~~~
 
 <aside class="notes">
 
-So, with our semigroup in hand, we can then go on to write a bunch of 
+So, what's a semigroup good for? Here's the simplest application: 
 
 So, why don't we just call this an "AssocAppender" or something? Well, we could.
 However, here's a chart that I grabbed off of Wikipedia:
@@ -337,10 +601,7 @@ an identity element.
 
 </aside>
 
-Composition
-===========
 
-* (.) :: (b -> c) -> (a -> b) -> (a -> c)
 
 Kleisli
 -------
