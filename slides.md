@@ -212,8 +212,8 @@ from languages like C and Java.
 Unlike what's typically termed an enum, values of a sum type can carry around
 additional data, which you can retrieve when you pattern match on a value of
 that type. Each term of the 'enum' block is called a 'constructor' for that data
-type - just to be clear, 'Just' isn't a type, it's a constructor for a value
-of type 'Maybe of A'. 
+type - just to be clear, 'Left' isn't a type, it's a constructor for a value
+of type 'Either of A and B'. 
 
 Types like this, where you can have multiple different constructors for values
 of the same type, are really, really important, so important that I kind of
@@ -506,6 +506,9 @@ the 'f.compose(g)' in the above example without changing the meaning
 of our program. We're free to let the *human* concerns of what pieces
 of functionality "make sense" together guide our design.
 
+What I've written out here is a short proof of the fact that function
+composition is associative. 
+
 </aside>
 
 <div class="fragment">
@@ -523,20 +526,19 @@ with confidence, relying upon the types of our functions to guide us. We'll
 see the importance of associativity over and over again as we explore more
 monstrous names in functional programming.
 
-
 </aside>
 
 Semigroup
 =========
 
-* An associative binary operation that combines two values of a type
-  to yield a new value of that type.
+An associative binary operation that combines two values of a type to yield a
+new value of that type.
 
 ~~~{haxe}
 
 typedef Semigroup<A> = {
   append: A -> A -> A
-}
+};
 
 s.append(s.append(a0, a1), a2) == s.append(a0, s.append(a1, a2))
 
@@ -547,19 +549,18 @@ s.append(s.append(a0, a1), a2) == s.append(a0, s.append(a1, a2))
 If we're going to be combining values, this seems about as primitive
 a mechanism for combining values as one could come up with. 
 
-So why is associativity important? 
+So, again, associativity is important because it allows us to reorder
+operations and achieve the same result, so long as the order of the operands is
+preserved.  A coworker stated this as "You want associativity when you want to
+muck about with evaluation order."
 
-* It allows us to reorder operations and achieve the same result,
-  so long as the order of the operands is preserved.
-
-* A coworker stated this as "You want associativity when you want to muck 
-  about with evaluation order."
-
-If functional programming is about combining values, and if we want to be able
-to decompose our programs into smaller constituents, then we may want to break
-up *where* we're doing that combining, or not do it all at once, and yet still
-have the same meaning to our program when we put those constituents back
-together.
+Now, unfortunately we don't have a mechanism in the Haxe type system to demand
+proof of the associativity that we require of implementations of this type, so
+we'll have to simply go by convention. This is unfortunate, because it means that
+we need to be more careful when writing implementations, but this isn't a defect
+that's unique to the Haxe type system - Haskell doesn't require proofs that the
+binary operation in instances of its "Semigroup" typeclass are associative
+either.
 
 </aside>
 
@@ -567,20 +568,48 @@ together.
 
 ~~~{haxe}
 
-function fold1Nel<A>(xs: NonEmptyList<A>, s: Semigroup<A>): A { 
-  return switch xs {
-    case Single(a): a;
-    case Cons(a, ax): s.append(a, fold1Nel(ax));
-  };
+function nelSemigroup<A>(): Semigroup<NonEmpty<A>> {
+  function append0(e0: NonEmpty<A>, e1: NonEmpty<A>): NonEmpty<A> {
+    return switch e0 {
+      case Single(a): ConsNel(a, e1);
+      case ConsNel(a, rest): ConsNel(a, append0(rest, e1));
+    };
+  }
+
+  return { append: append0 };
 }
 
 ~~~
 
 <aside class="notes">
 
-So, what's a semigroup good for? Here's the simplest application: 
+In practical terms, here's a common example of how you'll see semigroups used.
+A useful semigroup value is the semigroup for non-empty lists. 
 
-So, why don't we just call this an "AssocAppender" or something? Well, we could.
+We can see from the pattern matching we're using to deconstruct the first argument
+to our append function that our NonEmpty type is a sum type with two constructors,
+one the constructor for a non-empty list of a single element, and the other the
+constructor which takes a head value and a non-empty tail to with that head will
+be prepended.
+
+This is a useful data structure for the purpose of things like accumulating parsing
+errors. We'll see an example of that later on, so remember this semigroup instance.
+
+There are actually a huge number of types for which we can write Semigroup
+instances, for example, for integers, both addition and multiplication are
+associative binary operations. Concatenation of ordinary lists or arrays (which
+may be empty) is also a binary associative operation. It seems like it's
+possible to define a semigroup for just about any data structure for which you
+can concieve of an "additive" operation, because those operations can so
+frequently be made associative.  Subtractive operations, by contrast, are
+frequently not associative though so be cautious. The integers, for example, do
+not form a semigroup under subtraction or division.
+
+Now, I've given you the name "Semigroup", described what it does (which is just
+combine to values into a new value of the same type, and given you an example
+of a semigroup implementation. It's a pretty simple idea. So, rather than calling
+this by a potentially unfamiliar name that comes from abstract algebra, why
+don't we just call this an "AssocAppender" or something?  We could!
 However, here's a chart that I grabbed off of Wikipedia:
 
 </aside>
@@ -592,23 +621,115 @@ However, here's a chart that I grabbed off of Wikipedia:
 <aside class="notes">
 
 We don't call this an AssocAppender because to do so would rob us of centuries
-worth of literature and learning about how we can use associative binary 
-operations that put together two members of a set and return another member
-of that same set. Calling it a Semigroup helps us identify that this operation
-is part of a larger framework of binary operations on sets, some of which may be 
-useful to us in similar situations. When we look here and see that 'Monoid' is just a semigroup with 
-an identity element. 
+worth of literature and learning about how we can use associative binary
+operations that put together two members of a set and return another member of
+that same set. Calling it a Semigroup helps us identify that this operation is
+part of a larger framework of binary operations on sets, some of which may be
+useful to us in similar situations. When we look here and see that 'Monoid' is
+a semigroup with an identity element. 
 
 </aside>
 
+------
 
+Monoid
+======
+
+~~~{haxe}
+
+typedef Semigroup<A> = {
+  append: A -> A -> A
+};
+
+typedef Monoid<A> = {
+  mzero: A,
+  append: A -> A -> A
+};
+
+m.append(m.mzero, a) == a
+m.append(a, m.mzero) == a
+
+~~~
+
+<aside class="notes">
+
+The "Identity" element for a monoid is simply a value of the type for which we
+have our associative binary operation, which obeys these two laws.
+
+Now, the demand that we have an identity element for our associative binary
+operation means that we can only write Monoid values for a subset of the types
+for which we can write Semigroup values. For example, we can't write a Monoid
+instance for NonEmpty - while we have a binary associative concatenation
+operation, we can't define a "zero" element for the nonempty list. If we back
+up, we see that the semigroup is defined for all A - we can concatenate
+nonempty lists without having any idea what ghe element type is - but to define
+mzero, we'd have to be able to synthesize a valid value to occupy the Single
+element of our non-empty list, and we'd have to be able to do this for *every
+possible type.* 
+
+However, because we have this additional operation and law, there is a greater
+variety of operations that we can write for monoidal types (types for which we
+can define a Monoid) than we can for types for which we can define a Semigroup.
+But, if you're writing a function that needs to append two arbitray things of
+the same type, you're best off writing it to take a Semigroup to do the
+appending in order to make it usable with the greatest possible number of
+types. 
+
+</aside>
 
 Kleisli
--------
+=======
 
-* (>=>) :: Monad m => (a -> m b) -> (b -> m c) -> a -> m c
+<aside class="notes">
 
-Lens
-----
+Let's go back to functions now, and suppose that that we want to compose a
+slightly more exotic class of function, namely, *effectful* functions. Here's
+an example:
 
+</aside>
 
+~~~{haxe}
+
+function kComposeOption<A, B, C>(f: B -> Option<C>, g: A -> Option<B>): A -> Option<C> {
+  return function(a: A) {
+    return switch g(a) {
+      case Some(b): f(b);
+      case None:    None;
+    };
+  };
+}
+
+function kComposeList<A, B, C>(f: B -> List<C>, g: A -> List<B>): A -> List<C> { ... }
+
+function kComposePromise<A, B, C>(f: B -> Promise<C>, g: A -> Promise<B>): A -> Promise<C> { ... }
+
+~~~
+
+<aside class="notes">
+
+Here we have another really straightforward idea, given a scary but informative
+name. The idea is the same one that we've been looking at in every case thus
+far, that we want to take two values that have the same shape - in this case,
+functions from a value to some effectful "container" containing a value of some
+other type - and combine them to create a new value, a new function, having the
+same shape.
+
+In each case, the resulting function fuses together the effects produced 
+by the functions being composed. 
+
+</aside>
+
+Applicative Functors
+====================
+
+Free Applicative Functors
+=========================
+
+Free Monads
+===========
+
+Lenses
+======
+
+Conclusion
+==========
