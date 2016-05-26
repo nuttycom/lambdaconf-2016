@@ -708,8 +708,11 @@ function kComposePromise<A, B, C>(f: B -> Promise<C>, g: A -> Promise<B>): A -> 
 <aside class="notes">
 
 Here we have another really straightforward idea, given a scary but informative
-name. The idea is the same one that we've been looking at in every case thus
-far, that we want to take two values that have the same shape - in this case,
+name, one that's easily Googlable and can lead you to the start of a nice
+random walk through some interesting math and programming Wikipedia pages. 
+
+The idea is the same one that we've been looking at in every case thus far,
+that we want to take two values that have the same shape - in this case,
 functions from a value to some effectful "container" containing a value of some
 other type - and combine them to create a new value, a new function, having the
 same shape.
@@ -717,10 +720,60 @@ same shape.
 In each case, the resulting function fuses together the effects produced 
 by the functions being composed. 
 
+There's something else important here. The effects being fused are fused
+*sequentially*. I think that the third example, using Promises, is a good one
+for this reason. A Promise represents a potentially asynchronous computation
+that may produce a value of the parameter type at some point in the future.
+When we compose these functions, it's obvious that the Promise produced by 'g'
+must complete and yield a value before 'f' can be evaluated to produce the
+final result. This is true in every case - if the Option yielded by g
+contains a value, it must have been evaluated completely in order
+for f to be invoked. In the second example, each B value produced by 
+the that 'g' is used to invoke 'f', and the results are concatenated
+sequentially. 
+
+Kleisli composition is all about putting effects in order by way of introducing
+a data dependency between those effects.
+
+And, as with function composition, Kleisli composition is associative.  This is
+important here for the same reasons that it was important when we were
+composing functions where the output type of the first matched the input type
+of the second. We want functions like this, where the output value is wrapped
+in some effect, to be able to be written and reasoned about independently,
+composed based upon their input and output types, and then be confident that
+their meaning doesn't change based upon the order in which we performed
+the compositions. 
+
 </aside>
 
-Applicative Functors
-====================
+Applicatives & Functors
+=======================
+
+~~~{haxe}
+
+function composePar<A, B, C>(f: A -> B -> C): Promise<A> -> Promise<B> -> Promise<C>;
+
+~~~
+
+<aside class="notes">
+
+Let's talk now about a composition of effects that does *not* necessarily demand
+an ordering by way of data dependency. 
+
+The interesting thing to look at here is the result type of composePar - 
+
+</aside>
+
+<div class="fragment">
+
+~~~{haxe}
+
+function fmap<A, B>(f: A -> B): Array<A> -> Array<B>
+
+~~~
+
+</div>
+
 
 Free Applicative Functors
 =========================
