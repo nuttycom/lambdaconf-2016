@@ -746,40 +746,249 @@ the compositions.
 
 </aside>
 
-Applicatives & Functors
-=======================
+Applicative Functors
+====================
 
 ~~~{haxe}
 
-function composePar<A, B, C>(f: A -> B -> C): Promise<A> -> Promise<B> -> Promise<C>;
+function liftA2Zip<A, B, C>(f: A -> B -> C): ZipList<A> -> ZipList<B> -> ZipList<C>;
+
+function liftA2Par<A, B, C>(f: A -> B -> C): Par<A> -> Par<B> -> Par<C>;
 
 ~~~
-
-<aside class="notes">
-
-Let's talk now about a composition of effects that does *not* necessarily demand
-an ordering by way of data dependency. 
-
-The interesting thing to look at here is the result type of composePar - 
-
-</aside>
 
 <div class="fragment">
 
 ~~~{haxe}
 
-function fmap<A, B>(f: A -> B): Array<A> -> Array<B>
+function liftA2Val<E, A, B, C>(f: A -> B -> C, s: Semigroup<E>): 
+  Validation<E, A> -> Validation<E, B> -> Validation<E C>
 
 ~~~
 
 </div>
 
+<aside class="notes">
+
+Let's talk now about a composition of effects that does *not* necessarily demand
+to be sequenced by way of data dependency. 
+
+The interesting thing to look at here is the result types of these liftA2
+variants. You can think of Par as a type alias (really a newtype) for Promise
+that demands parallel execution, rather than the data-dependant, sequential
+evaluation that Kleisli composition gives us. ZipList is a similar newtype wrapper
+for ordinary lists. In both cases we're using a distinct type to distinguish
+how these types of values compose, so as not to confuse the parallel versions
+with their sequential variants. 
+
+Anyway, the result type of liftA2Par is a function that directly fuses two
+values representing asynchronous effects, but without any data dependency
+between the first effect and the second forcing an ordering of evaluation
+upon us. The two inputs can be evaluated, as you might expect, in parallel,
+and then the provided function applied to both results when they become
+available. 
+
+So, we're just composing things again! Applicatives are about nothing more
+than fusing together these effects, just in a slightly different way than
+Kleisli composition does it.
+
+One more example, this is another really common use of applicative composition,
+one that I use every day. If you have a function that does some validation of
+input and potentially parsing of a wire form like JSON to a type, it's useful
+to be able to accumulate any failures and return them all at once. For this
+kind of purpose we clearly wouldn't want sequential composition with
+fail-on-first-error semantics, since then it might take a user multiple
+round-trips to discover all of their errors. Here we see another use of a
+semigroup - if we have a semigroup for the error type, then we can use that to
+collect up (dare I say compose?) all of our errors into a single value.
+
+</aside>
 
 Free Applicative Functors
 =========================
 
+~~~{haxe}
+
+
+~~~
+
+~~~{scala}
+
+sealed trait FreeAp[F[_], A]
+
+case class Pure[F[_], A](a: A) extends FreeAp[F, A]
+case class Ap[F[_], A, I](f: F[I], k: FreeAp[F, I => A])
+
+object FreeAp {
+  def liftA2[F[_], A, B, C](f: (A, B) => C): (FreeAp[F, A], FreeAp[F, B]) => FreeAp[F, C] = ???
+}
+
+~~~
+
+<aside class="notes">
+
+Sooner or later as you explore the world of functional programming, you're 
+going to start running into the idea of "free" structures. Free monads
+are perhaps the most famous, but since we're on applicatives right now 
+we'll cover them first.
+
+In each of the applicatives we've looked at thus far, the specific applicative
+type has had some kind of intrinsic effect in addition to the fact that that
+effect could be composed in applicative fashion. The "free" construction is a
+way to separate out the applicative composition part from that additional
+effect. 
+
+What this means is that we're going to create a data structure that has *no*
+intrinsic effects of it own, except to wrap another parameterized type in a way
+that lets us implement liftA2 for that wrapped type. In languages that support
+higher-kinded types, we get this lifting or wrapping capability as a library;
+in Haxe, we have to do a little bit of extra work because we lack the
+abstractive capability, but we can get a similar result.
+
+This brings me to an important point. Even in languages that lack some very
+important features, like higher-kinded types, it's often possible to achieve
+the same compositional properties, at the cost of a loss of abstraction -
+repeated code. Here I'm jumping into Scala for a moment to give you an idea
+of what this looks like in the general case - we're able to implement liftA2
+without choosing ahead of time what F is. Moreover, it's the only operation we
+*can* implement, because we have no additional structure.
+
+So what can we do with this thing, if the only operation we can perform is
+this particular type of composition? Here's an example.
+
+</aside>
+
+------
+
+~~~{haxe}
+
+enum Schema<A> {
+  BoolSchema: Schema<Bool>;
+  FloatSchema: Schema<Float>;
+  IntSchema: Schema<Int>;
+  StrSchema: Schema<String>;
+  UnitSchema: Schema<Unit>;
+
+  ObjectSchema<B>(propSchema: ObjAp<B, B>): Schema<B>;
+  ArraySchema<B>(elemSchema: Schema<B>): Schema<Array<B>>;
+
+  // schema for sum types
+  OneOfSchema<B>(alternatives: Array<Alternative<B>>): Schema<B>;
+
+  // This allows us to create schemas that parse to newtype wrappers
+  IsoSchema<B, C>(base: Schema<B>, f: B -> C, g: C -> B): Schema<C>;
+
+  Lazy<B>(s: Void -> Schema<B>): Schema<B>;
+}
+
+enum Alternative<A> {
+  Prism<B>(id: String, base: Schema<B>, f: B -> A, g: A -> Option<B>);
+}
+
+enum PropSchema<O, A> {
+  Required<B>(fieldName: String, valueSchema: Schema<B>, accessor: O -> B): PropSchema<O, B>;
+  Optional<B>(fieldName: String, valueSchema: Schema<B>, accessor: O -> Option<B>): PropSchema<O, Option<B>>;
+}
+
+enum ObjAp<O, A> {
+  Pure(a: A);
+  Ap<I>(s: PropSchema<O, I>, k: ObjAp<O, I -> A>);
+}
+
+~~~
+
+<aside class="notes">
+
+This is a set of data structures that describe a typed schema for JSON data.
+It suppports a set of combinators that allow you to build up values of the
+Schema type. They're mostly trivial, so I'm just going to show you an example 
+of how they're used.
+
+</aside>
+
+------
+
+~~~{haxe}
+
+class Person {
+  public var name: String;
+  public var age: Option<Int>;
+  public var children: Array<Person>;
+
+  public function new(name: String, age: Int, children: Array<Person>) {
+    this.name = name;
+    this.age = age;
+    this.children = children:
+  }
+
+  public static var schema: Schema<Person> = ObjectSchema(
+    liftA3(
+      Person.new,
+      Required("name", StrSchema, function(x: Person) return x.name),
+      Optional("age",  IntSchema, function(x: Person) return x.age),
+      Required("children", 
+               ArraySchema(Lazy(function() return Person.schema)), 
+               function(x: Person) return x.children)
+    )
+  );
+}
+
+~~~
+
+<aside class="notes">
+
+So here we have a bit of code defining a person class, and a schema for this type. 
+Fine. So what can we do with it? If the only effect that the "Free" part gives us
+over the underlying sum type is that it permits us to compose values as we see
+here, then the only sensible way to make use of such a composed value is to deconstruct
+it. What can we do with such a deconstruction?
+
+</aside>
+
+------
+
+~~~{haxe}
+
+public static function parseJSON<A>(schema: Schema<A>, v: JValue): VNel<ParseError, A>
+
+~~~
+
+<div class="fragment">
+
+~~~{haxe}
+
+public static function renderJSON<A>(schema: Schema<A>, a: A): JValue
+
+~~~
+
+</div>
+
+<div class="fragment">
+
+~~~{haxe}
+
+public static function toJsonSchema<A>(schema: Schema<A>): JValue
+
+~~~
+
+</div>
+
+<div class="fragment">
+
+~~~{haxe}
+
+public static function gen<A>(schema: Schema<A>): Gen<A>
+
+~~~
+
+</div>
+
 Free Monads
 ===========
+
+<aside class="notes">
+
+</aside>
 
 Lenses
 ======
