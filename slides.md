@@ -807,15 +807,9 @@ collect up (dare I say compose?) all of our errors into a single value.
 Free Applicative Functors
 =========================
 
-~~~{haxe}
-
-
-~~~
-
 ~~~{scala}
 
 sealed trait FreeAp[F[_], A]
-
 case class Pure[F[_], A](a: A) extends FreeAp[F, A]
 case class Ap[F[_], A, I](f: F[I], k: FreeAp[F, I => A])
 
@@ -983,15 +977,154 @@ public static function gen<A>(schema: Schema<A>): Gen<A>
 
 </div>
 
+<aside class="notes">
+
+Each of these functions is an interpreter - it deconstructs the schema a piece
+at a time, accumulating the information that was captured during its
+composition and using that to construct the output. We put the Schema value
+together just so that we could take it apart and allow its structure to guide
+the composition of some other data structure.
+
+</aside>
+
 Free Monads
 ===========
 
+~~~{scala}
+
+sealed trait Free[F[_], A]
+case class Pure[F[_], A](a: A) extends Free[F, A]
+case class Bind[F[_], A, B](s: Free[F, A], f: A => Free[F, B]) extends Free[F, A]
+
+object Free {
+  def kCompose[F[_]: Functor, A, B, C](f: B => Free[F, C], f: A => Free[F, B]): A => Free[F, C] = ???
+}
+
+~~~
+
+~~~{scala}
+
+sealed trait FreeAp[F[_], A]
+case class Pure[F[_], A](a: A) extends FreeAp[F, A]
+case class Ap[F[_], A, I](f: F[I], k: FreeAp[F, I => A])
+
+~~~
+
 <aside class="notes">
+
+Okay, remember Kleisli composition? What I didn't mention when I was talking
+about fusing effects is that that's also known as the Monad operation. That's
+all that Monad means - a type which has a Monad is one where you can compose
+two effects of that type sequentially, with the order of those effects
+guaranteed by the data dependency.
+
+So, we saw with free applicatives that the "Free" moniker referred to separating
+the compositional effect from the underlying algebraic data type. The Free monad
+is really no different. I'm not going to go into details here, except to point out
+the difference between 'Ap' and 'Bind'.
+
+In the case of Bind, when we write an interpreter to deconstruct a value of
+type Free the major difference that we find is that at each step of the
+decomposition, we must evaluate the value on the left side of the Bind
+constructor completely in order to be able to evaluate the value on the right.
+This enforces the sequentiality that we talked about earlier when discussing
+Kleisli composition - while with FreeAp we can effectively recover all of the
+structure at once, which is useful for something like producing the serialized
+form of a value, in the case of the free monad we are forced to decompose the
+structure incrementally, and additional values that we will have to then
+decompose may be produced in the process of evaluating the function on the
+right of the Bind.
 
 </aside>
 
 Lenses
 ======
 
+~~~{haxe}
+
+class PLens<S, T, A, B> {
+  public var get(default, null): S -> A;
+  public var set(default, null): B -> (S -> T);
+
+  public function new(get: S -> A, set: B -> (S -> T)) {
+    this.get = get;
+    this.set = set;
+  }
+
+  public function modify(f: A -> B): S -> T {
+    return function(s: S) {
+      return this.set(f(this.get(s)))(s);
+    };
+  }
+}
+
+~~~
+
+<aside class="notes">
+
+One more, and we'll be done. This is a lens. Anybody want to guess what it's good for?
+
+</aside>
+
+------
+
+~~~{haxe}
+
+function view<S, T, A, B>(s: S, la: PLens<S, T, A, B>): A {
+  return la.get(s);
+}
+
+function update<S, T, A, B>(s: S, la: PLens<S, T, A, B>, b: B): T {
+  return la.set(b)(s);
+}
+
+~~~
+
+<div class="fragment">
+
+~~~{haxe}
+
+function compose<S, T, A, B, C, D>(stab: PLens<S, T, A, B>, abcd: PLens<A, B, C, D>): PLens<S, T, C, D> {
+  return PLenses.pLens(
+    function(s: S): C return abcd.get(stab.get(s)),
+    function(d: D): S -> T return stab.modify(abcd.set(d))
+  );
+}
+
+~~~
+
+</div>
+
+<aside class="notes">
+
+You can use a lens to pick a component out of a data structure, or to create a copy
+of a data structure with that component replaced by a new value.
+
+And, of course... this is almost getting redundant at this point, right? You can compose
+lenses, so that the composed value can act on composed data structures. 
+
+</aside>
+
 Conclusion
 ==========
+
+<aside class="notes">
+
+Okay. Is the horse dead yet? I think that I've been stating the conclusion to this
+talk on basically every slide thus far.
+
+Functional programming is about programming with values, and about the only
+thing we can do with values are to put them together and take them apart.
+Values come in all kinds of interesting shapes, and since each shape is a
+little different, we've come up with lots and lots of ways to put values of
+different shapes together, and given these different ways names to help us
+distinguish one from another. We've drawn on inspiration from set theory,
+abstract algebra, category theory, and elsewhere, and so where possible we've
+used the names that those fields have given these modes of composition, to
+distinguish them and to draw our attention to the fact that, while programming
+is a new field, there's a tremendous amount of learning that has come before in
+the various subfields of mathematics that we can draw on as we figure out how
+to take information and make it dance for our pleasure.
+
+</aside>
+
