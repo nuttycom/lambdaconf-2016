@@ -312,9 +312,9 @@ function left<A, B>(a: A): Either<A, B> = {
   }
 }
 
-function right<A, B>(a: A): Either<A, B> = {
+function right<A, B>(b: B): Either<A, B> = {
   function apply<C>(ifLeft: A -> C, ifRight: B -> C): C {
-    return ifRight(a);
+    return ifRight(b);
   }
 }
 

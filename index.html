@@ -43,7 +43,7 @@
             <h2>Monstrous Names Aren't Scary</h2>
             <p><img src="./img/not_scary.jpg" width="600"/></p>
 
-            <p><em>Kris Nuttycombe - May 28, 2016</em></p>
+            <p><em>Kris Nuttycombe - @nuttycom - May 28, 2016</em></p>
             <aside class="notes">
                 <p>One of the first things that I think that everybody notices, basically as soon as they get started
                     with functional programming, is that as soon as you start looking at resources, reading blog posts,
@@ -168,6 +168,9 @@ typedef Pair&lt;A, B&gt; = {
 };
 
 </code></pre>
+            <div class="fragment">
+<pre><code class="haxe">typedef SIPair = Pair&lt;String, Int&gt;;</code></pre>
+            </div>
             <aside class="notes">
                 <p>Here, we're putting a two types (which, as I said earlier,
                     are values, but here values in our type-level language)
@@ -243,7 +246,7 @@ enum Either&lt;A, B&gt; {
                     <pre><code class="haxe">var i: Int = /* censored */;</code></pre>
                 </div>
                 <div class="fragment">
-                    <pre><code class="haxe">var x: { b: Bool, i: Int } = /* censored */;</code></pre>
+                    <pre><code class="haxe">typedef BoolIntPair = { b: Bool, i: Int };</code></pre>
                 </div>
                 <div class="fragment">
 <pre><code class="haxe">
@@ -252,7 +255,7 @@ enum Either&lt;A, B&gt; {
   Right(b: B);
 }
 
-var x: Either&lt;Bool, Int&gt; = /* censored */;
+typedef BoolOrInt = Either&lt;Bool, Int&gt;;
 
 </code></pre>
                 </div>
@@ -268,11 +271,6 @@ var i: Int = /* censored */;
 
 var x: { b: Bool, i: Int } = /* censored */;
 // 2 * 2^32 states
-
-enum Either&lt;A, B&gt; {
-  Left(a: A);
-  Right(b: B);
-}
 
 var x: Either&lt;Bool, Int&gt; = /* censored */;
 // 2 + 2^32 states
@@ -360,9 +358,17 @@ var f : A -&gt; B = ...
 <pre><code class="haxe">
 enum OneOfThree = { First; Second; Third; };
 
-var f : OneOfThree -&gt; Bool = ...
+typedef OneOfThree = OneOfThree -&gt; Bool;
 
 </code></pre>
+                <div class="fragment">
+<pre><code class="haxe">
+
+//cardinality of OneOfThree = 2^3
+
+</code></pre>
+                </div>
+
                 <aside class="notes">
                     <p>So, we have three possible inputs, each of which may independently produce one of two outputs. We
                         want to figure out the size of state space that the type of the function can represent in our
@@ -648,11 +654,9 @@ function kComposePromise&lt;A, B, C&gt;(f: B -&gt; Promise&lt;C&gt;, g: A -&gt; 
             <section>
                 <h2>Applicative Functor</h2>
 <pre><code class="haxe">
-function liftA2Zip&lt;A, B, C&gt;(f: A -&gt; B -&gt; C): 
-    ZipList&lt;A&gt; -&gt; ZipList&lt;B&gt; -&gt; ZipList&lt;C&gt;;
+function liftA2Zip&lt;A, B, C&gt;(f: A -&gt; B -&gt; C): ZipList&lt;A&gt; -&gt; ZipList&lt;B&gt; -&gt; ZipList&lt;C&gt;;
 
-function liftA2Par&lt;A, B, C&gt;(f: A -&gt; B -&gt; C): 
-    Par&lt;A&gt; -&gt; Par&lt;B&gt; -&gt; Par&lt;C&gt;;
+function liftA2Par&lt;A, B, C&gt;(f: A -&gt; B -&gt; C): Par&lt;A&gt; -&gt; Par&lt;B&gt; -&gt; Par&lt;C&gt;;
 
 </code></pre>
                 <div class="fragment">
