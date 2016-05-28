@@ -814,7 +814,7 @@ case class Pure[F[_], A](a: A) extends FreeAp[F, A]
 case class Ap[F[_], A, I](f: F[I], k: FreeAp[F, I => A])
 
 object FreeAp {
-  def liftA2[F[_], A, B, C](f: (A, B) => C): (FreeAp[F, A], FreeAp[F, B]) => FreeAp[F, C] = ???
+  def liftA2[F[_], A, B, C](f: A => B => C): FreeAp[F, A] => FreeAp[F, B] => FreeAp[F, C] = ???
 }
 
 ~~~

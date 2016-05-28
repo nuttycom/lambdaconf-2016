@@ -416,9 +416,7 @@ function compose&lt;A, B, C&gt;(f: B -&gt; C, g: A -&gt; B): A -&gt; C {
 
                 <p>So, now let's get on to something that actually has a bit of a monstrous name.</p>
             </aside>
-        </section>
-        <section id="associativity" class="level1">
-            <h1>Associativity</h1>
+            <div class="fragment">
 <pre><code class="haxe">
 f.compose(g.compose(h)) = (f.compose(g)).compose(h)
 
@@ -445,12 +443,13 @@ f.compose(g.compose(h)(x)) = f(g.compose(h)(x))
 
                 <p>What I've written out here is a short proof of the fact that function composition is associative.</p>
             </aside>
-            <div class="fragment">
-                <blockquote>
-                    <p>Programs must be written for people to read, and only incidentally for machines to execute. -
-                        Abelson, Structure and Interpretation of Computer Programs.</p>
-                </blockquote>
             </div>
+        </section>
+        <section id="associativity-2" class="level1">
+            <blockquote>
+                <p>Programs must be written for people to read, and only incidentally for machines to execute. -
+                    Abelson, Structure and Interpretation of Computer Programs.</p>
+            </blockquote>
             <aside class="notes">
                 <p>This is a quote from Harold Abelson in one of the bibles of our profession. Associativity gives us
                     the freedom we need to be able to rearrange programs with confidence, relying upon the types of our
@@ -460,9 +459,10 @@ f.compose(g.compose(h)(x)) = f(g.compose(h)(x))
         </section>
         <section id="semigroup" class="level1">
             <section>
-                <h1>Semigroup</h1>
-
-                <p>An associative binary operation that combines two values of a type to yield a new value of that type.</p>
+                <h2>Semigroup</h2>
+                <p><img src="./img/semigroup.jpg" width="500"/></p>
+                <div class="fragment">
+                  <p>An associative binary operation that combines two values of a type to yield a new value of that type.</p>
 <pre><code class="haxe">
 typedef Semigroup&lt;A&gt; = {
   append: A -&gt; A -&gt; A
@@ -471,21 +471,22 @@ typedef Semigroup&lt;A&gt; = {
 s.append(s.append(a0, a1), a2) == s.append(a0, s.append(a1, a2))
 
 </code></pre>
-                <aside class="notes">
-                    <p>If we're going to be combining values, this seems about as primitive a mechanism for combining values
-                        as one could come up with.</p>
+                  <aside class="notes">
+                      <p>If we're going to be combining values, this seems about as primitive a mechanism for combining values
+                          as one could come up with.</p>
 
-                    <p>So, again, associativity is important because it allows us to reorder operations and achieve the same
-                        result, so long as the order of the operands is preserved. A coworker stated this as &quot;You want
-                        associativity when you want to muck about with evaluation order.&quot;</p>
+                      <p>So, again, associativity is important because it allows us to reorder operations and achieve the same
+                          result, so long as the order of the operands is preserved. A coworker stated this as &quot;You want
+                          associativity when you want to muck about with evaluation order.&quot;</p>
 
-                    <p>Now, unfortunately we don't have a mechanism in the Haxe type system to demand proof of the
-                        associativity that we require of implementations of this type, so we'll have to simply go by
-                        convention. This is unfortunate, because it means that we need to be more careful when writing
-                        implementations, but this isn't a defect that's unique to the Haxe type system - Haskell doesn't
-                        require proofs that the binary operation in instances of its &quot;Semigroup&quot; typeclass are
-                        associative either.</p>
-                </aside>
+                      <p>Now, unfortunately we don't have a mechanism in the Haxe type system to demand proof of the
+                          associativity that we require of implementations of this type, so we'll have to simply go by
+                          convention. This is unfortunate, because it means that we need to be more careful when writing
+                          implementations, but this isn't a defect that's unique to the Haxe type system - Haskell doesn't
+                          require proofs that the binary operation in instances of its &quot;Semigroup&quot; typeclass are
+                          associative either.</p>
+                  </aside>
+                </div>
             </section>
             <section>
 <pre><code class="haxe">
@@ -541,12 +542,11 @@ function nelSemigroup&lt;A&gt;(): Semigroup&lt;NonEmpty&lt;A&gt;&gt; {
             </section>
         </section>
         <section id="monoid" class="level1">
-            <h1>Monoid</h1>
+            <h2>Monoid</h2>
+            <p><img src="./img/monoid.jpg" width="500"/></p>
+            <div class="fragment">
+              <p>A semigroup with an identity element.</p>
 <pre><code class="haxe">
-typedef Semigroup&lt;A&gt; = {
-  append: A -&gt; A -&gt; A
-};
-
 typedef Monoid&lt;A&gt; = {
   mzero: A,
   append: A -&gt; A -&gt; A
@@ -556,28 +556,34 @@ m.append(m.mzero, a) == a
 m.append(a, m.mzero) == a
 
 </code></pre>
-            <aside class="notes">
-                <p>The &quot;Identity&quot; element for a monoid is simply a value of the type for which we have our
-                    associative binary operation, which obeys these two laws.</p>
+              <aside class="notes">
+                  <p>The &quot;Identity&quot; element for a monoid is simply a value of the type for which we have our
+                      associative binary operation, which obeys these two laws.</p>
 
-                <p>Now, the demand that we have an identity element for our associative binary operation means that we
-                    can only write Monoid values for a subset of the types for which we can write Semigroup values. For
-                    example, we can't write a Monoid instance for NonEmpty - while we have a binary associative
-                    concatenation operation, we can't define a &quot;zero&quot; element for the nonempty list. If we
-                    back up, we see that the semigroup is defined for all A - we can concatenate nonempty lists without
-                    having any idea what ghe element type is - but to define mzero, we'd have to be able to synthesize a
-                    valid value to occupy the Single element of our non-empty list, and we'd have to be able to do this
-                    for <em>every possible type.</em></p>
+                  <p>Now, the demand that we have an identity element for our associative binary operation means that we
+                      can only write Monoid values for a subset of the types for which we can write Semigroup values. For
+                      example, we can't write a Monoid instance for NonEmpty - while we have a binary associative
+                      concatenation operation, we can't define a &quot;zero&quot; element for the nonempty list. If we
+                      back up, we see that the semigroup is defined for all A - we can concatenate nonempty lists without
+                      having any idea what ghe element type is - but to define mzero, we'd have to be able to synthesize a
+                      valid value to occupy the Single element of our non-empty list, and we'd have to be able to do this
+                      for <em>every possible type.</em></p>
 
-                <p>However, because we have this additional operation and law, there is a greater variety of operations
-                    that we can write for monoidal types (types for which we can define a Monoid) than we can for types
-                    for which we can define a Semigroup. But, if you're writing a function that needs to append two
-                    arbitray things of the same type, you're best off writing it to take a Semigroup to do the appending
-                    in order to make it usable with the greatest possible number of types.</p>
-            </aside>
+                  <p>However, because we have this additional operation and law, there is a greater variety of operations
+                      that we can write for monoidal types (types for which we can define a Monoid) than we can for types
+                      for which we can define a Semigroup. But, if you're writing a function that needs to append two
+                      arbitray things of the same type, you're best off writing it to take a Semigroup to do the appending
+                      in order to make it usable with the greatest possible number of types.</p>
+              </aside>
+            </div>
         </section>
         <section id="kleisli" class="level1">
-            <h1>Kleisli</h1>
+            <section id="kleisli1" class="level2">
+                <h2>Kleisli</h2>
+                <p><img src="./img/kleisli.jpg" width="600"/></p>
+            </section>
+            <section id="kleisli1" class="level2">
+                <h2>Kleisli</h2>
 <pre><code class="haxe">
 function kComposeOption&lt;A, B, C&gt;(f: B -&gt; Option&lt;C&gt;, g: A -&gt; Option&lt;B&gt;): 
     A -&gt; Option&lt;C&gt; {
@@ -597,44 +603,50 @@ function kComposePromise&lt;A, B, C&gt;(f: B -&gt; Promise&lt;C&gt;, g: A -&gt; 
     A -&gt; Promise&lt;C&gt; { ... }
 
 </code></pre>
-            <aside class="notes">
-                <p>Let's go back to functions now, and suppose that that we want to compose a slightly more exotic class
-                    of function, namely, <em>effectful</em> functions. Here's an example:</p>
+                <aside class="notes">
+                    <p>Let's go back to functions now, and suppose that that we want to compose a slightly more exotic class
+                        of function, namely, <em>effectful</em> functions. Here's an example:</p>
 
-                <p>Here we have another really straightforward idea, given a scary but informative name, one that's
-                    easily Googlable and can lead you to the start of a nice random walk through some interesting math
-                    and programming Wikipedia pages.</p>
+                    <p>Here we have another really straightforward idea, given a scary but informative name, one that's
+                        easily Googlable and can lead you to the start of a nice random walk through some interesting math
+                        and programming Wikipedia pages.</p>
 
-                <p>The idea is the same one that we've been looking at in every case thus far, that we want to take two
-                    values that have the same shape - in this case, functions from a value to some effectful &quot;container&quot;
-                    containing a value of some other type - and combine them to create a new value, a new function,
-                    having the same shape.</p>
+                    <p>The idea is the same one that we've been looking at in every case thus far, that we want to take two
+                        values that have the same shape - in this case, functions from a value to some effectful &quot;container&quot;
+                        containing a value of some other type - and combine them to create a new value, a new function,
+                        having the same shape.</p>
 
-                <p>In each case, the resulting function fuses together the effects produced by the functions being
-                    composed.</p>
+                    <p>In each case, the resulting function fuses together the effects produced by the functions being
+                        composed.</p>
 
-                <p>There's something else important here. The effects being fused are fused <em>sequentially</em>. I
-                    think that the third example, using Promises, is a good one for this reason. A Promise represents a
-                    potentially asynchronous computation that may produce a value of the parameter type at some point in
-                    the future. When we compose these functions, it's obvious that the Promise produced by 'g' must
-                    complete and yield a value before 'f' can be evaluated to produce the final result. This is true in
-                    every case - if the Option yielded by g contains a value, it must have been evaluated completely in
-                    order for f to be invoked. In the second example, each B value produced by the that 'g' is used to
-                    invoke 'f', and the results are concatenated sequentially.</p>
+                    <p>There's something else important here. The effects being fused are fused <em>sequentially</em>. I
+                        think that the third example, using Promises, is a good one for this reason. A Promise represents a
+                        potentially asynchronous computation that may produce a value of the parameter type at some point in
+                        the future. When we compose these functions, it's obvious that the Promise produced by 'g' must
+                        complete and yield a value before 'f' can be evaluated to produce the final result. This is true in
+                        every case - if the Option yielded by g contains a value, it must have been evaluated completely in
+                        order for f to be invoked. In the second example, each B value produced by the that 'g' is used to
+                        invoke 'f', and the results are concatenated sequentially.</p>
 
-                <p>Kleisli composition is all about putting effects in order by way of introducing a data dependency
-                    between those effects.</p>
+                    <p>Kleisli composition is all about putting effects in order by way of introducing a data dependency
+                        between those effects.</p>
 
-                <p>And, as with function composition, Kleisli composition is associative. This is important here for the
-                    same reasons that it was important when we were composing functions where the output type of the
-                    first matched the input type of the second. We want functions like this, where the output value is
-                    wrapped in some effect, to be able to be written and reasoned about independently, composed based
-                    upon their input and output types, and then be confident that their meaning doesn't change based
-                    upon the order in which we performed the compositions.</p>
-            </aside>
+                    <p>And, as with function composition, Kleisli composition is associative. This is important here for the
+                        same reasons that it was important when we were composing functions where the output type of the
+                        first matched the input type of the second. We want functions like this, where the output value is
+                        wrapped in some effect, to be able to be written and reasoned about independently, composed based
+                        upon their input and output types, and then be confident that their meaning doesn't change based
+                        upon the order in which we performed the compositions.</p>
+                </aside>
+            </section>
         </section>
         <section id="applicative-functors" class="level1">
-            <h1>Applicative Functors</h1>
+            <section>
+                <h2>Applicative Functor</h2>
+                <p><img src="./img/applicative.jpg" width="600"/></p>
+            </section>
+            <section>
+                <h2>Applicative Functor</h2>
 <pre><code class="haxe">
 function liftA2Zip&lt;A, B, C&gt;(f: A -&gt; B -&gt; C): 
     ZipList&lt;A&gt; -&gt; ZipList&lt;B&gt; -&gt; ZipList&lt;C&gt;;
@@ -643,52 +655,56 @@ function liftA2Par&lt;A, B, C&gt;(f: A -&gt; B -&gt; C):
     Par&lt;A&gt; -&gt; Par&lt;B&gt; -&gt; Par&lt;C&gt;;
 
 </code></pre>
-            <div class="fragment">
+                <div class="fragment">
 <pre><code class="haxe">
 function liftA2Val&lt;E, A, B, C&gt;(f: A -&gt; B -&gt; C, s: Semigroup&lt;E&gt;): 
     Validation&lt;E, A&gt; -&gt; Validation&lt;E, B&gt; -&gt; Validation&lt;E C&gt;
 
 </code></pre>
-            </div>
-            <aside class="notes">
-                <p>Let's talk now about a composition of effects that does <em>not</em> necessarily demand to be
-                    sequenced by way of data dependency.</p>
+                </div>
+                <aside class="notes">
+                    <p>Let's talk now about a composition of effects that does <em>not</em> necessarily demand to be
+                        sequenced by way of data dependency.</p>
 
-                <p>The interesting thing to look at here is the result types of these liftA2 variants. You can think of
-                    Par as a type alias (really a newtype) for Promise that demands parallel execution, rather than the
-                    data-dependant, sequential evaluation that Kleisli composition gives us. ZipList is a similar
-                    newtype wrapper for ordinary lists. In both cases we're using a distinct type to distinguish how
-                    these types of values compose, so as not to confuse the parallel versions with their sequential
-                    variants.</p>
+                    <p>The interesting thing to look at here is the result types of these liftA2 variants. You can think of
+                        Par as a type alias (really a newtype) for Promise that demands parallel execution, rather than the
+                        data-dependant, sequential evaluation that Kleisli composition gives us. ZipList is a similar
+                        newtype wrapper for ordinary lists. In both cases we're using a distinct type to distinguish how
+                        these types of values compose, so as not to confuse the parallel versions with their sequential
+                        variants.</p>
 
-                <p>Anyway, the result type of liftA2Par is a function that directly fuses two values representing
-                    asynchronous effects, but without any data dependency between the first effect and the second
-                    forcing an ordering of evaluation upon us. The two inputs can be evaluated, as you might expect, in
-                    parallel, and then the provided function applied to both results when they become available.</p>
+                    <p>Anyway, the result type of liftA2Par is a function that directly fuses two values representing
+                        asynchronous effects, but without any data dependency between the first effect and the second
+                        forcing an ordering of evaluation upon us. The two inputs can be evaluated, as you might expect, in
+                        parallel, and then the provided function applied to both results when they become available.</p>
 
-                <p>So, we're just composing things again! Applicatives are about nothing more than fusing together these
-                    effects, just in a slightly different way than Kleisli composition does it.</p>
+                    <p>So, we're just composing things again! Applicatives are about nothing more than fusing together these
+                        effects, just in a slightly different way than Kleisli composition does it.</p>
 
-                <p>One more example, this is another really common use of applicative composition, one that I use every
-                    day. If you have a function that does some validation of input and potentially parsing of a wire
-                    form like JSON to a type, it's useful to be able to accumulate any failures and return them all at
-                    once. For this kind of purpose we clearly wouldn't want sequential composition with
-                    fail-on-first-error semantics, since then it might take a user multiple round-trips to discover all
-                    of their errors. Here we see another use of a semigroup - if we have a semigroup for the error type,
-                    then we can use that to collect up (dare I say compose?) all of our errors into a single value.</p>
-            </aside>
+                    <p>One more example, this is another really common use of applicative composition, one that I use every
+                        day. If you have a function that does some validation of input and potentially parsing of a wire
+                        form like JSON to a type, it's useful to be able to accumulate any failures and return them all at
+                        once. For this kind of purpose we clearly wouldn't want sequential composition with
+                        fail-on-first-error semantics, since then it might take a user multiple round-trips to discover all
+                        of their errors. Here we see another use of a semigroup - if we have a semigroup for the error type,
+                        then we can use that to collect up (dare I say compose?) all of our errors into a single value.</p>
+                </aside>
+            </section>
         </section>
         <section id="free-applicative-functors" class="level1">
             <section>
-                <h1>Free Applicative Functors</h1>
+                <h2>Free Applicative Functor</h2>
+                <p><img src="./img/free_applicative.jpg" width="600"/></p>
+            </section>
+            <section>
 <pre><code class="scala">
 sealed trait FreeAp[F[_], A]
 case class Pure[F[_], A](a: A) extends FreeAp[F, A]
 case class Ap[F[_], A, I](f: F[I], k: FreeAp[F, I =&gt; A])
 
 object FreeAp {
-  def liftA2[F[_], A, B, C](f: (A, B) =&gt; C): 
-      (FreeAp[F, A], FreeAp[F, B]) =&gt; FreeAp[F, C] = ???
+  def liftA2[F[_], A, B, C](f: A =&gt; B =&gt; C): 
+      FreeAp[F, A] =&gt; FreeAp[F, B] =&gt; FreeAp[F, C] = ???
 }
 
 </code></pre>
@@ -834,7 +850,7 @@ function gen&lt;A&gt;(schema: Schema&lt;A&gt;): Gen&lt;A&gt;
             </section>
         </section>
         <section id="free-monads" class="level1">
-            <h1>Free Monads</h1>
+            <h2>Free Monad</h2>
 <pre><code class="scala">
 sealed trait Free[F[_], A]
 case class Pure[F[_], A](a: A) extends Free[F, A]
@@ -878,7 +894,7 @@ case class Ap[F[_], A, I](f: F[I], k: FreeAp[F, I =&gt; A])
         </section>
         <section id="lenses" class="level1">
             <section>
-                <h1>Lenses</h1>
+                <h2>Lenses</h2>
 <pre><code class="haxe">
 class PLens&lt;S, T, A, B&gt; {
   public var get(default, null): S -&gt; A;
@@ -951,6 +967,10 @@ function compose&lt;S, T, A, B, C, D&gt;(stab: PLens&lt;S, T, A, B&gt;, abcd: PL
                     mathematics that we can draw on as we figure out how to take information and make it dance for our
                     pleasure.</p>
             </aside>
+            <div class="fragment">
+              <p><img src="./img/zygo_histo_prepro.jpg" width="580"/></p>
+              <p><em>(Zygohistomorphic prepromorphism)</em></p>
+            </div>
         </section>
     </div>
 
